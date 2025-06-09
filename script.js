@@ -31,7 +31,7 @@ window.addEventListener('load', () => {
   }
 });
 
-// 3) 메시지 표시 함수 (완전 전송용)
+// 메시지 표시 함수
 function appendMessage(text, className) {
   const msgEl = document.createElement('div');
   msgEl.classList.add('message', className);
@@ -40,61 +40,27 @@ function appendMessage(text, className) {
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-// 4) 스트리밍 전용 메시지 생성 (청크 이어붙이기)
-function createStreamingMessage() {
-  const msgEl = document.createElement('div');
-  msgEl.classList.add('message', 'bot-message');
-  chatWindow.append(msgEl);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
-  return msgEl;
-}
-
-// 5) 스트리밍 API 호출 함수
-async function generateContentStream(prompt) {
+// 전체 응답을 한 번에 받아오는 호출
+async function generateContent(prompt) {
   if (!API_KEY) throw new Error('API 키를 먼저 입력·저장해주세요!');
   
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:streamGenerateContent?key=${API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key=${API_KEY}`;
   const payload = { contents: [{ parts: [{ text: prompt }] }] };
 
   const res = await fetch(url, {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body:    JSON.stringify(payload),
   });
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(`API 오류 ${res.status}: ${errText}`);
   }
-
-  const reader  = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer     = '';
-  const msgEl    = createStreamingMessage();
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop();  // 마지막에 남은 불완전한 줄은 다음 청크와 합침
-
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      try {
-        const parsed = JSON.parse(line);
-        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) {
-          msgEl.textContent += text;
-          chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-      } catch (e) {
-        console.warn('파싱 실패:', line);
-      }
-    }
-  }
+  const data = await res.json();
+  return data.candidates[0].content.parts[0].text;
 }
 
-// 6) 전송 핸들러
+// 전송 핸들러
 async function handleSend() {
   const text = userInput.value.trim();
   if (!text) return;
@@ -102,13 +68,14 @@ async function handleSend() {
   userInput.value = '';
 
   try {
-    await generateContentStream(text);
+    const reply = await generateContent(text);
+    appendMessage(reply, 'bot-message');
   } catch (err) {
     appendMessage(`에러 발생: ${err.message}`, 'bot-message');
   }
 }
 
-// 7) 이벤트 바인딩
+// 이벤트 바인딩
 sendButton.addEventListener('click', handleSend);
 userInput.addEventListener('keyup', e => {
   if (e.key === 'Enter') handleSend();
