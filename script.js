@@ -45,7 +45,8 @@ async function generateContent(prompt) {
     if (!API_KEY) {
         throw new Error('먼저 API 키를 입력·저장해주세요!');
     }
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+    // 모델 ID를 gemma-3-27b로 변경
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b:generateContent?key=${API_KEY}`;
     const body = { contents: [ { parts: [{ text: prompt }] } ] };
 
     const res = await fetch(url, {
@@ -60,6 +61,7 @@ async function generateContent(prompt) {
     const data = await res.json();
     return data.candidates[0].content.parts[0].text;
 }
+
 
 // 전송 처리
 async function handleSend() {
