@@ -53,7 +53,7 @@ function createStreamingMessage() {
 async function generateContentStream(prompt) {
   if (!API_KEY) throw new Error('API 키를 먼저 입력·저장해주세요!');
   
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b:streamGenerateContent?key=${API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:streamGenerateContent?key=${API_KEY}`;
   const payload = { contents: [{ parts: [{ text: prompt }] }] };
 
   const res = await fetch(url, {
